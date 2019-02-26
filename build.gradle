@@ -1,0 +1,13 @@
+plugins {
+    id 'java'
+}
+
+group 'com.cjburkey'
+version '0.0.1'
+
+sourceCompatibility = 11
+
+task runOrbyte(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    main = 'com.cjburkey.orbyte.Orbyte'
+}
