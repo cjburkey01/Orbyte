@@ -5,9 +5,31 @@ plugins {
 group 'com.cjburkey'
 version '0.0.1'
 
+project.ext.junitVersion = '5.4.0'
+
 sourceCompatibility = 11
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation "org.junit.jupiter:junit-jupiter-api:$junitVersion"
+    testImplementation "org.junit.jupiter:junit-jupiter-engine:$junitVersion"
+}
 
 task runOrbyte(type: JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     main = 'com.cjburkey.orbyte.Orbyte'
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+}
+
+wrapper {
+    gradleVersion = '5.2.1'
 }

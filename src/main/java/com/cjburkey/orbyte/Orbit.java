@@ -1,7 +1,5 @@
 package com.cjburkey.orbyte;
 
-import java.util.Objects;
-
 import static java.lang.Math.*;
 
 /**
@@ -12,180 +10,97 @@ import static java.lang.Math.*;
  * Please not that I am writing this out of passion and am neither an orbital physicist nor do I have any special knowledge.
  * This is the culmination of hours of research on multiple different websites and I'm sure my ignorance shows.
  */
-@SuppressWarnings("WeakerAccess")
 public final class Orbit {
 
     private static final double G = 6.67408E-11;
 
-    // Given
-    private final double semiMajorAxis;
-    private final double eccentricity;
-    private final double inclination;
-    private final double argumentOfPeriapsis;
-    private final double timeOfPeriapsisPassage;
-    private final double longitudeOfAscendingNode;
-    private final double parentMass;
-    private final double mass;
-
-    // Calculated
-    private final double orbitalPeriod;
-    private final double meanMotion;
-
-    private Orbit(double semiMajorAxis,
-                  double eccentricity,
-                  double inclination,
-                  double argumentOfPeriapsis,
-                  double timeOfPeriapsisPassage,
-                  double longitudeOfAscendingNode,
-                  double parentMass,
-                  double mass) {
-        this.semiMajorAxis = semiMajorAxis;
-        this.eccentricity = eccentricity;
-        this.inclination = inclination;
-        this.argumentOfPeriapsis = argumentOfPeriapsis;
-        this.timeOfPeriapsisPassage = timeOfPeriapsisPassage;
-        this.longitudeOfAscendingNode = longitudeOfAscendingNode;
-        this.parentMass = parentMass;
-        this.mass = mass;
-
-        orbitalPeriod = sqrt((4.0d * (PI * PI) * (semiMajorAxis * semiMajorAxis * semiMajorAxis)) / (G * (parentMass + mass)));
-        meanMotion = sqrt((G * parentMass) / (semiMajorAxis * semiMajorAxis * semiMajorAxis));
-    }
-
-    private double getMeanAnomolyChange(double startTime, double endTime) {
-        return meanMotion * (endTime - startTime);
-    }
-
-    private double getVelocity(double radius) {
-        return sqrt((G * parentMass) * ((2.0d / radius) - (1.0d / semiMajorAxis)));
-    }
-
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Orbit orbit = (Orbit) o;
-        return Double.compare(orbit.semiMajorAxis, semiMajorAxis) == 0 &&
-                Double.compare(orbit.eccentricity, eccentricity) == 0 &&
-                Double.compare(orbit.inclination, inclination) == 0 &&
-                Double.compare(orbit.argumentOfPeriapsis, argumentOfPeriapsis) == 0 &&
-                Double.compare(orbit.timeOfPeriapsisPassage, timeOfPeriapsisPassage) == 0 &&
-                Double.compare(orbit.longitudeOfAscendingNode, longitudeOfAscendingNode) == 0 &&
-                Double.compare(orbit.parentMass, parentMass) == 0 &&
-                Double.compare(orbit.mass, mass) == 0;
-    }
-
-    public int hashCode() {
-        return Objects.hash(semiMajorAxis,
-                eccentricity,
-                inclination,
-                argumentOfPeriapsis,
-                timeOfPeriapsisPassage,
-                longitudeOfAscendingNode,
-                parentMass,
-                mass);
-    }
-
     // -- BEGIN PURE FUNCTIONS -- //
 
     /**
-     * @param eccentricity         The eccentricity of the orbit
-     * @param radiansPastPeriapsis The radians since the periapsis
-     * @return The eccentric anomoly; the angular position of the orbit relative to the major axis in radians.
+     * @param eccentricity <code>e</code> The eccentricity of the orbit
+     * @param trueAnomoly  <code>v</code> The radians since the periapsis
+     * @return The eccentric anomoly <code>E</code>; the angular position of the orbit relative to the major axis in radians.
      */
-    public static double getEccentricAnomoly(double eccentricity,
-                                             double radiansPastPeriapsis) {
+    public static double getEccentricAnomoly(final double eccentricity,
+                                             final double trueAnomoly) {
         // 4.40
-        return acos((eccentricity + cos(radiansPastPeriapsis)) / (1.0d + eccentricity * cos(radiansPastPeriapsis)));
+        return acos((eccentricity + cos(trueAnomoly)) / (1.0d + eccentricity * cos(trueAnomoly)));
     }
 
     /**
-     * @param eccentricAnomoly The angular position of the orbit relative to the major axis in radians.
-     * @param eccentricity     The eccentricity of the orbit.
-     * @return The mean anomoly of the orbit at the given eccentric anomoly; the fraction of the period that has elapsed since the orbiting body passed periapsis.
+     * @param eccentricAnomoly <code>E</code> The angular position of the orbit relative to the major axis in radians.
+     * @param eccentricity     <code>e</code> The eccentricity of the orbit.
+     * @return The mean anomoly of the orbit at the given eccentric anomoly <code>M</code>; the fraction of the period that has elapsed since the orbiting body passed periapsis.
      */
-    public static double getMeanAnomoly(double eccentricAnomoly,
-                                        double eccentricity) {
+    public static double getMeanAnomoly(final double eccentricAnomoly,
+                                        final double eccentricity) {
         // 4.41
         return eccentricAnomoly - eccentricity * sin(eccentricAnomoly);
     }
 
-    public static double getAverageAngularVelocity(double parentMass,
-                                                   double semiMajorAxisMeters) {
+    /**
+     * @param parentMass          <code>M<sub>p</sub></code> The mass of the reference object for the orbit in meters.
+     * @param semiMajorAxisMeters <code>a</code> The length of the semi-major axis of the orbit in meters.
+     * @return <code>n</code> The average angular velocity along the orbit.
+     */
+    public static double getAverageAngularVelocity(final double parentMass,
+                                                   final double semiMajorAxisMeters) {
         // 4.39
         return sqrt((G * parentMass) / (semiMajorAxisMeters * semiMajorAxisMeters * semiMajorAxisMeters));
     }
 
-    private static double getTimeElapsed(double meanAnomolyStart,
-                                         double meanAnomolyFinish,
-                                         double averageVelocity) {
+    /**
+     * @param meanAnomolyStart       <code>M<sub>0</sub></code> The starting mean anomoly.
+     * @param meanAnomolyFinish      <code>M</code> The final mean anomoly.
+     * @param averageAngularVelocity <code>n</code> The average angular velocity of the orbit.
+     * @return <code>t</code> The time elapsed between the starting mean anomoly and the ending mean anomoly in seconds.
+     */
+    private static double getTimeElapsed(final double meanAnomolyStart,
+                                         final double meanAnomolyFinish,
+                                         final double averageAngularVelocity) {
         // 4.38
-        return (meanAnomolyFinish - meanAnomolyStart) / averageVelocity;
+        return (meanAnomolyFinish - meanAnomolyStart) / averageAngularVelocity;
     }
 
     /**
-     * @param eccentricAnomoly The angular position of the orbit relative to the major axis in radians.
-     * @param eccentricity     The eccentricity of the orbit.
-     * @return The true anomoly of the orbit at the orbiting body's position; the angle between the direction of periapsis and the current position of the orbiting body in radians.
+     * @param eccentricAnomoly <code>E</code> The angular position of the orbit relative to the major axis in radians.
+     * @param eccentricity     <code>e</code> The eccentricity of the orbit.
+     * @return The true anomoly of the orbit at the orbiting body's position <code>v</code>; the angle between the direction of periapsis and the current position of the orbiting body in radians.
      */
-    public static double getTrueAnomoly(double eccentricAnomoly,
-                                        double eccentricity) {
+    public static double getTrueAnomoly(final double eccentricAnomoly,
+                                        final double eccentricity) {
         // 4.40
         return acos((cos(eccentricAnomoly) - eccentricity) / (1.0d - eccentricity * cos(eccentricAnomoly)));
     }
 
-    private static double timeFromTo(double semiMajorAxisMeters,
-                                     double eccentricity,
-                                     double parentMass,
-                                     double degreesPastPeriapsisBefore,
-                                     double degreesPastPeriapsisAfter) {
-        final double v0 = degreesPastPeriapsisBefore * PI / 180.0d;
-        final double v = degreesPastPeriapsisAfter * PI / 180.0d;
+    /**
+     * @param meanAnomoly          <code>M</code> The fraction of the period that has elapsed since the orbiting body passed periapsis.
+     * @param eccentricity         <code>e</code> The eccentricity of the orbit.
+     * @param maxIterations        The maximum number of iterations that will be run to approximate the value.
+     * @param decimalPlaceAccuracy The number of decimal places to which the answer should be accurate.
+     * @return The eccentric anomoly <code>E</code>; the angular position of the orbit relative to the major axis in radians.
+     */
+    public static double getEccentricAnomoly(final double meanAnomoly,
+                                             final double eccentricity,
+                                             final int maxIterations,
+                                             final int decimalPlaceAccuracy) {
+        // From: http://www.jgiesen.de/kepler/kepler.html
+        // Ported to Java from Javascript by me. You're welcome, me.
+        double delta = pow(10.0d, -decimalPlaceAccuracy);
+        double m = (toDegrees(meanAnomoly) / 360.0d);
+        m = (2.0d * PI * (m - floor(m)));
 
-        final double E0 = getEccentricAnomoly(eccentricity, v0);
-        final double E = getEccentricAnomoly(eccentricity, v);
+        double E = ((eccentricity < 0.8d) ? m : PI);
+        double F = (E - (eccentricity * sin(m)) - m);
 
-        final double M0 = getMeanAnomoly(E0, eccentricity);
-        final double M = getMeanAnomoly(E, eccentricity);
+        int i = 0;
+        while ((abs(F) > delta) && (i < maxIterations)) {
+            E = (E - (F / (1.0d - eccentricity * cos(E))));
+            F = (E - (eccentricity * sin(E)) - m);
+            i++;
+        }
 
-        final double n = getAverageAngularVelocity(parentMass, semiMajorAxisMeters);
-
-        return getTimeElapsed(M0, M, n);
-    }
-
-    private static double getTrueAnomolyAfter(double semiMajorAxisMeters,
-                                              double eccentricity,
-                                              double parentMass,
-                                              double degreesPastPeriapsisBefore,
-                                              double time,
-                                              double iterationAccuracy) {
-        final double v0 = degreesPastPeriapsisBefore * PI / 180.0d;
-
-        final double E0 = getEccentricAnomoly(eccentricity, v0);
-
-        final double M0 = getMeanAnomoly(E0, eccentricity);
-
-        final double n = getAverageAngularVelocity(parentMass, semiMajorAxisMeters);
-
-        // 4.38
-        final double M = M0 + n * time;
-
-        final double E = getIterateEccentricAnomoly(M, eccentricity, iterationAccuracy);
-
-        return getTrueAnomoly(E, eccentricity);
-    }
-
-    private static double getIterateEccentricAnomoly(double M,
-                                                     double e,
-                                                     double accuracy) {
-        // 4.41
-        double Enext = 0.0d;
-        double Eprev = 0.0d;
-        do {
-            double tmpNextPrev = Enext;
-            Enext = Eprev + ((M + e * sin(Eprev) - Eprev) / (1.0d - e * cos(Eprev)));
-            Eprev = tmpNextPrev;
-        } while (abs(Enext - Eprev) > accuracy);
-        return Enext;
+        return round(E * pow(10, decimalPlaceAccuracy)) / pow(10, decimalPlaceAccuracy);
     }
 
 }
